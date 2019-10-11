@@ -23,8 +23,13 @@ pydocstyle = ">=4.0.0"
 pytest = "*"
 sqlalchemy-stubs = "*"
 
+sphinx = {version = "*", optional = true}
+m2r = {version = "*", optional = true}
+sphinx_rtd_theme = {version = "*", optional = true}
+
 [tool.poetry.extras]
 pytest = ['pytest']
+docs = ['sphinx', 'm2r', 'sphinx_rtd_theme']
 
 [tool.poetry.plugins.pytest11]
 model_manager = "sqlalchemy_model_factory.pytest"
