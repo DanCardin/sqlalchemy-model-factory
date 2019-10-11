@@ -14,6 +14,7 @@ test:
 	coverage run -m py.test src tests -vv
 	coverage combine --append
 	coverage report
+	coverage xml
 
 lint:
 	flake8 src tests

@@ -1,4 +1,4 @@
-name: CI
+name: build
 
 on: [push]
 
@@ -30,4 +30,4 @@ jobs:
         uses: codecov/codecov-action@v1.0.0
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-          file: ./.coverage
+          file: ./coverage.xml

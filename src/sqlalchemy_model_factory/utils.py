@@ -1,10 +1,16 @@
 import functools
+from typing import Callable, Optional
 
 
-def autoincrement(fn=None, *, start=1):  # pragma: no cover
+def autoincrement(fn: Optional[Callable] = None, *, start: int = 1):  # pragma: no cover
     """Decorate registered callables to provide them with a source of uniqueness.
 
+    Args:
+        fn: The callable
+        start: The starting number of the sequence to generate
+
     Examples:
+
     >>> @autoincrement
     ... def new(autoincrement=1):
     ...     return autoincrement

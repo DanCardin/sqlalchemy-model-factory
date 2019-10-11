@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "sqlalchemy-model-factory"
 version = "0.1.0"
-description = ""
-authors = []
+description = "A library to assist in generating models from a central location."
+authors = ["Dan Cardin <ddcardin@gmail.com>"]
 packages = [
     { include = "sqlalchemy_model_factory", from = "src" },
 ]
@@ -12,6 +12,11 @@ python = ">=3.5"
 
 sqlalchemy = "*"
 pytest = {version = ">=1.0", optional = true}
+
+sphinx = {version = "*", optional = true}
+m2r = {version = "*", optional = true}
+sphinx_rtd_theme = {version = "*", optional = true}
+sphinx_autodoc_typehints = {version = "*", optional = true}
 
 [tool.poetry.dev-dependencies]
 black = {version = "=>19.3b0", allows-prereleases = true, python = ">=3.6"}
@@ -25,6 +30,7 @@ sqlalchemy-stubs = "*"
 
 [tool.poetry.extras]
 pytest = ['pytest']
+docs = ['sphinx', 'm2r', 'sphinx_rtd_theme']
 
 [tool.poetry.plugins.pytest11]
 model_manager = "sqlalchemy_model_factory.pytest"
