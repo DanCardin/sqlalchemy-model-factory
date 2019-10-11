@@ -1,4 +1,4 @@
-.PHONY: lock install build test lint format
+.PHONY: lock install build test lint format publish
 .DEFAULT_GOAL := help
 
 lock:
@@ -26,3 +26,6 @@ lint:
 format:
 	isort src tests
 	black src tests
+
+publish: build
+	poetry publish -u __token__ -p '${PYPI_PASSWORD}' --no-interaction
