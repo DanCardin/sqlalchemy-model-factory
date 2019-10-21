@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 from sqlalchemy_model_factory.base import ModelFactory
 from sqlalchemy_model_factory.registry import registry
+from sqlalchemy_model_factory.utils import for_model
 from tests import get_session
 
 Base = declarative_base()
@@ -97,3 +98,16 @@ class TestModelFactory:
 
         assert len(session.query(Foo).all()) == 0
         assert len(session.query(Bar).all()) == 0
+
+    def test_for_model(self):
+        session = get_session(Base)
+
+        @registry.register_at("thing")
+        @for_model(Foo)
+        def new_thing():
+            bar = Bar(id=1)
+            return {"bar_id": bar.id}
+
+        with ModelFactory(registry, session) as mm:
+            foo = mm.thing.new()
+            assert isinstance(foo, Foo)

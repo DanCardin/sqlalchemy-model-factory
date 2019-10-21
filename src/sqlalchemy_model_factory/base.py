@@ -67,7 +67,11 @@ class AccessGuard:
         return getattr(self.__obj, attr)
 
     def __call__(self, *args, commit_=True, **kwargs):
-        result = self.__obj(*args, **kwargs)
+        callable = self.__obj
+        if hasattr(callable, "for_model"):
+            callable = callable.for_model
+
+        result = callable(*args, **kwargs)
         self.__manager.add_result(result, commit=commit_)
         return result
 
