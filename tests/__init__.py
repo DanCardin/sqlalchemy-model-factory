@@ -1,4 +1,4 @@
-from sqlalchemy import Column, create_engine, ForeignKey, types
+from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 
 

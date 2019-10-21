@@ -4,6 +4,7 @@ General usage requires the user to define either a `mf_engine` or a `mf_session`
 Once defined, they can have their tests depend on the exposed `mf` fixture, which should
 give them access to any factory functions on which they've called `register_at`.
 """
+from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 
 from sqlalchemy_model_factory.base import ModelFactory
@@ -28,6 +29,13 @@ def mf_registry():
     """Define a default fixture for the general case where the default registry is used.
     """
     return registry
+
+
+@pytest.fixture
+def mf_engine():
+    """Define a default fixture in for the database engine.
+    """
+    return create_engine("sqlite:///")
 
 
 @pytest.fixture
