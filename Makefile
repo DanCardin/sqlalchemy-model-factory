@@ -24,7 +24,7 @@ lint:
 	black --check src tests
 
 format:
-	isort src tests
+	isort --recursive --quiet src tests
 	black src tests
 
 publish: build

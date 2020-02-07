@@ -1,11 +1,19 @@
 from collections.abc import Iterable
 
 
+class Options:
+    def __init__(self, commit=True, cleanup=True):
+        self.commit = commit
+        self.cleanup = cleanup
+
+
 class ModelFactory:
-    def __init__(self, registry, session):
+    def __init__(self, registry, session, options=None):
         self.registry = registry
         self.new_models = set()
         self.session = session
+
+        self.options = Options(**options or {})
 
     def __enter__(self):
         return namespace_from_registry(Namespace, self, self.registry)
@@ -15,16 +23,24 @@ class ModelFactory:
         return False
 
     def remove_managed_data(self):
+        if not self.options.cleanup:
+            return
+
         # Events inside the context manager could have left pending state.
         self.session.rollback()
 
         if self.session.autocommit:
             self.session.begin()
 
-        for model in self.new_models:
+        while self.session.identity_map:
+            model = next(iter(self.session.identity_map.values()))
             self.session.delete(model)
+            self.session.flush()
 
-        self.session.commit()
+        self.new_models.clear()
+
+        if self.options.commit:
+            self.session.commit()
 
     def add_result(self, result, commit=True):
         # The state of the session is unknown at this point. Ensure it's empty.
@@ -45,7 +61,11 @@ class ModelFactory:
         if commit:
             # Again, we cannot predict what's happening elsewhere, so we should try to keep models
             # appear to return as they would if freshly queried from the database.
-            self.session.commit()
+            if self.options.commit:
+                self.session.commit()
+            else:
+                self.session.flush()
+
             if isinstance(result, Iterable):
                 for item in result:
                     self.session.refresh(item)

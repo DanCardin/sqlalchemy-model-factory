@@ -3,26 +3,26 @@ name: build
 on: [push]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-python@v1
-      - uses: dschep/install-poetry-action@v1.2
-        with:
-          version: 1.0.0a1
-      - run: poetry install
-      - run: poetry run make test
-      - run: poetry build
-
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@v1
-      - uses: dschep/install-poetry-action@v1.2
+      - uses: dschep/install-poetry-action@v1.3
         with:
-          version: 1.0.0a1
+          version: 1.0.0
+      - run: poetry install
+      - run: poetry run make lint
+      - run: poetry build
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v1
+      - uses: dschep/install-poetry-action@v1.3
+        with:
+          version: 1.0.0
       - run: poetry install
       - run: poetry run make test
 

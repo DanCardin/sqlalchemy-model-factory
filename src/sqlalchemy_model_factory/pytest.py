@@ -47,8 +47,15 @@ def mf_session(mf_engine):
 
 
 @pytest.fixture
-def mf(mf_registry, mf_session):
+def mf_config():
+    """Define a default fixture in for the model factory configuration.
+    """
+    return {}
+
+
+@pytest.fixture
+def mf(mf_registry, mf_session, mf_config):
     """Define a fixture for use of the ModelFactory in tests.
     """
-    with ModelFactory(mf_registry, mf_session) as model_manager:
+    with ModelFactory(mf_registry, mf_session, options=mf_config) as model_manager:
         yield model_manager

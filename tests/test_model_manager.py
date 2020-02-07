@@ -25,6 +25,30 @@ class Bar(Base):
 
     id = Column(types.Integer(), autoincrement=True, primary_key=True)
 
+    bar2s = relationship("Bar2", cascade="all, delete-orphan", passive_deletes=True)
+
+
+class Bar2(Base):
+    __tablename__ = "bar2"
+
+    id = Column(types.Integer(), autoincrement=True, primary_key=True)
+    bar_id = Column(
+        types.Integer(), ForeignKey("bar.id", ondelete="CASCADE"), nullable=False
+    )
+
+    bar = relationship("Bar")
+
+
+class Baz(Base):
+    __tablename__ = "baz"
+
+    id = Column(types.Integer(), autoincrement=True, primary_key=True)
+    bar_id = Column(
+        types.Integer(), ForeignKey("bar.id", ondelete="CASCADE"), nullable=False
+    )
+
+    bar = relationship("Bar")
+
 
 class TestRegistry:
     def setup(self):
@@ -98,6 +122,43 @@ class TestModelFactory:
 
         assert len(session.query(Foo).all()) == 0
         assert len(session.query(Bar).all()) == 0
+
+    def test_cascade_delete(self):
+        session = get_session(Base)
+
+        @registry.register_at("bar")
+        def new_bar():
+            return Bar()
+
+        @registry.register_at("baz")
+        def new_baz(bar):
+            return Baz(bar=bar)
+
+        with ModelFactory(registry, session) as mm:
+            bar = mm.bar.new()
+            mm.baz.new(bar)
+
+        assert len(session.query(Bar).all()) == 0
+        assert len(session.query(Baz).all()) == 0
+
+    def test_cascade_delete_mapping_table(self):
+        session = get_session(Base)
+
+        @registry.register_at("bar")
+        def new_bar():
+            return Bar()
+
+        @registry.register_at("bar2")
+        def new_bar2(bar):
+            return Bar2(bar=bar)
+
+        with ModelFactory(registry, session) as mm:
+            bar = mm.bar.new()
+            mm.bar2.new(bar)
+            session.delete(bar)
+
+        assert len(session.query(Bar).all()) == 0
+        assert len(session.query(Bar2).all()) == 0
 
     def test_for_model(self):
         session = get_session(Base)
