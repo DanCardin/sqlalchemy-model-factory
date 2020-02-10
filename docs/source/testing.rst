@@ -11,7 +11,7 @@ Pytest
 ------
 
 We provide default implementations of a couple of pytest fixtures: :code:`mf_engine`,
-:code:`mf_session`. However this assumes you're okay running your code as though it's
+:code:`mf_session`, and :code:`mf_config`. However this assumes you're okay running your code as though it's
 executed in SQLite, and with default session parameters.
 
 If your system will work under those conditions, great! Simply go on and use the `mf` fixture
@@ -59,3 +59,26 @@ particular options set, you can similarly plug in your own session.
         return Session(bind=engine)
 
     # now the `mf` fixture should work
+
+
+Finally, there are a set of hooks through which you can configure the behavior of the :code:`ModelFactory`
+itself through the :code:`mf_config` fixture. If defined, this fixture should return a :code:`dict`,
+the contents of which would be the config options available.
+
+Below is defined, the equivalent of a maximally defined :code:`mf_config` fixture with all the
+values set to their defaults. **Note** That as a user, you only need to include options which
+you want overridden from their defaults.
+
+.. code-block:: python
+
+    @pytest.fixture
+    def mf_config():
+        return {
+            # Whether the calling of all factory functions should commit, or just flush.
+            "commit": True,
+
+            # Whether the actions performed by the model-factory should attempt to revert. Certain
+            # test circumstances (like complex relationships, or direct sql `execute` calls might
+            # mean cleanup will fail an otherwise valid test.
+            "cleanup": True,
+        }
