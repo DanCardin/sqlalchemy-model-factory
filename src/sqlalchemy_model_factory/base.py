@@ -96,15 +96,49 @@ class AccessGuard:
         return result
 
 
-def namespace_from_registry(cls, manager, registry):
-    attrs = {
-        namespace: cls(manager, **registry.methods(namespace))
-        for namespace in registry.namespaces()
-    }
-    return cls(manager, **attrs)
+def namespace_from_registry(cls, manager, registry, instance=None):
+    if not instance:
+        instance = cls(manager)
+
+    for namespace in registry.namespaces():
+        methods = registry.methods(*namespace)
+
+        context = instance
+        for path_item in namespace:
+            if not hasattr(context, path_item):
+                setattr(context, path_item, cls(manager))
+            context = getattr(context, path_item)
+
+        for name, method in methods.items():
+            setattr(context, name, AccessGuard(manager, method))
+
+    return instance
 
 
 class Namespace:
     def __init__(self, manager, **attrs):
         for attr, method in attrs.items():
             setattr(self, attr, AccessGuard(manager, method))
+
+    def __getattr__(self, attr):
+        """Catch unset attribute names to provide a better error message.
+        """
+        namespaces = []
+        methods = []
+        for name, attr in self.__dict__.items():
+            if isinstance(attr, self.__class__):
+                namespaces.append(name)
+            else:
+                methods.append(methods)
+
+        method_names = "N/A"
+        if methods:
+            method_names = ", ".join(methods)
+
+        namespace_names = "N/A"
+        if namespaces:
+            namespace_names = ", ".join(namespaces)
+
+        raise AttributeError(
+            f"'{self.__class__}' object has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
+        )
