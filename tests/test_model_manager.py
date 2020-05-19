@@ -56,18 +56,18 @@ class TestRegistry:
 
     def test_default_function_name(self):
         registry.register_at("thing")(1)
-        assert registry.namespaces() == ["thing"]
+        assert registry.namespaces() == [("thing",)]
         assert registry.methods("thing") == {"new": 1}
 
     def test_explicit_function_name(self):
-        registry.register_at("thing", "foo")(1)
-        assert registry.namespaces() == ["thing"]
+        registry.register_at("thing", name="foo")(1)
+        assert registry.namespaces() == [("thing",)]
         assert registry.methods("thing") == {"foo": 1}
 
     def test_registration_duplicate(self):
-        registry.register_at("thing", "foo")(1)
+        registry.register_at("thing", name="foo")(1)
         with pytest.raises(ValueError):
-            registry.register_at("thing", "foo")(1)
+            registry.register_at("thing", name="foo")(1)
 
 
 class TestModelFactory:
@@ -172,3 +172,51 @@ class TestModelFactory:
         with ModelFactory(registry, session) as mm:
             foo = mm.thing.new()
             assert isinstance(foo, Foo)
+
+
+class TestNamespaceNesting:
+    def setup(self):
+        registry.clear()
+
+    def test_namespace_nesting(self):
+        session = get_session(Base)
+
+        @registry.register_at("name", "space", "nesting", name="new")
+        def new_bar():
+            return Bar(id=1)
+
+        with ModelFactory(registry, session) as mm:
+            bar = mm.name.space.nesting.new()
+            assert isinstance(bar, Bar)
+
+    def test_namespace_nesting_at_different_levels(self):
+        session = get_session(Base)
+
+        @registry.register_at("name", "space", "nesting", name="new")
+        def new_bar():
+            return Bar(id=1)
+
+        @registry.register_at("name", "space", name="new")
+        def new_foo(bar):
+            return Foo(bar=bar)
+
+        with ModelFactory(registry, session) as mm:
+            bar = mm.name.space.nesting.new()
+            assert isinstance(bar, Bar)
+
+            foo = mm.name.space.new(bar)
+            assert isinstance(foo, Foo)
+
+    def test_logical_error_on_namespace_callable(self):
+        session = get_session(Base)
+
+        @registry.register_at("name", "space", "nesting", name="new")
+        def new_bar():
+            return Bar(id=1)
+
+        with ModelFactory(registry, session) as mm:
+            with pytest.raises(AttributeError) as e:
+                mm.name.space.new()
+
+            assert "Available methods include:" in str(e.value)
+            assert "Available nested namespaces include:" in str(e.value)
