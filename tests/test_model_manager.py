@@ -57,12 +57,12 @@ class TestRegistry:
     def test_default_function_name(self):
         registry.register_at("thing")(1)
         assert registry.namespaces() == [("thing",)]
-        assert registry.methods("thing") == {"new": 1}
+        assert registry.methods("thing")["new"].fn == 1
 
     def test_explicit_function_name(self):
         registry.register_at("thing", name="foo")(1)
         assert registry.namespaces() == [("thing",)]
-        assert registry.methods("thing") == {"foo": 1}
+        assert registry.methods("thing")["foo"].fn == 1
 
     def test_registration_duplicate(self):
         registry.register_at("thing", name="foo")(1)
@@ -220,3 +220,17 @@ class TestNamespaceNesting:
 
             assert "Available methods include:" in str(e.value)
             assert "Available nested namespaces include:" in str(e.value)
+
+    def test_merge(self):
+        session = get_session(Base)
+
+        session.add(Bar(id=1))
+        session.commit()
+
+        @registry.register_at("bar", merge=True)
+        def new_bar():
+            return Bar(id=1)
+
+        with ModelFactory(registry, session) as mm:
+            bar = mm.bar.new()
+        assert bar.id == 1

@@ -42,7 +42,7 @@ class ModelFactory:
         if self.options.commit:
             self.session.commit()
 
-    def add_result(self, result, commit=True):
+    def add_result(self, result, commit=True, merge=False):
         # The state of the session is unknown at this point. Ensure it's empty.
         self.session.rollback()
 
@@ -50,10 +50,20 @@ class ModelFactory:
         if self.session.autocommit:
             self.session.begin()
 
-        if isinstance(result, Iterable):
-            self.session.add_all(result)
+        if merge:
+            if isinstance(result, Iterable):
+                items = []
+                for item in result:
+                    items.append(self.session.merge(item))
+                result = items
+            else:
+                result = self.session.merge(result)
         else:
-            self.session.add(result)
+            if isinstance(result, Iterable):
+                for item in result:
+                    self.session.add(item)
+            else:
+                self.session.add(result)
 
         self.new_models = self.new_models.union(self.session.new)
 
@@ -79,20 +89,24 @@ class AccessGuard:
     """A descriptor that controls access to managed functions and their return values.
     """
 
-    def __init__(self, manager, obj):
+    def __init__(self, manager, method):
         self.__manager = manager
-        self.__obj = obj
+        self.__method = method
 
     def __getattr__(self, attr):
-        return getattr(self.__obj, attr)
+        return getattr(self.__method.fn, attr)
 
-    def __call__(self, *args, commit_=True, **kwargs):
-        callable = self.__obj
+    def __call__(self, *args, commit_=None, merge_=None, **kwargs):
+        callable = self.__method.fn
         if hasattr(callable, "for_model"):
             callable = callable.for_model
 
         result = callable(*args, **kwargs)
-        self.__manager.add_result(result, commit=commit_)
+
+        current_call_options = {"commit": commit_, "merge": merge_}
+        call_options = compose_options(self.__method.call_options, current_call_options)
+
+        self.__manager.add_result(result, **call_options)
         return result
 
 
@@ -115,6 +129,28 @@ def namespace_from_registry(cls, manager, registry, instance=None):
     return instance
 
 
+def compose_options(*optionsets):
+    """Compose a `dict` of options on top of eachother among a series of optionsets.
+
+    Ignores missing or empty keys in each optionset.
+
+    >>> compose_options({'foo': 1}, {'bar': 2})
+    {'foo': 1, 'bar': 2}
+    >>> compose_options({'foo': 10}, {'foo': 1})
+    {'foo': 1}
+    >>> compose_options({'foo': 10}, {'foo': None})
+    {'foo': 10}
+    """
+    result = {}
+    for optionset in optionsets:
+        for key, value in optionset.items():
+            if value is None:
+                continue
+
+            result[key] = value
+    return result
+
+
 class Namespace:
     def __init__(self, manager, **attrs):
         for attr, method in attrs.items():
@@ -125,11 +161,11 @@ class Namespace:
         """
         namespaces = []
         methods = []
-        for name, attr in self.__dict__.items():
-            if isinstance(attr, self.__class__):
+        for name, item in self.__dict__.items():
+            if isinstance(item, self.__class__):
                 namespaces.append(name)
             else:
-                methods.append(methods)
+                methods.append(name)
 
         method_names = "N/A"
         if methods:
@@ -140,5 +176,5 @@ class Namespace:
             namespace_names = ", ".join(namespaces)
 
         raise AttributeError(
-            f"'{self.__class__}' object has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
+            f"{self.__class__.__name__} has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
         )

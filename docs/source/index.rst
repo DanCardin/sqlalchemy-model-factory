@@ -8,6 +8,7 @@ Welcome to SQLAlchemy Model Factory's documentation!
    Quickstart <quickstart>
    Testing (Pytest) <testing>
    Factories <factories>
+   Options <options>
    API <api>
 
 .. include:: quickstart
