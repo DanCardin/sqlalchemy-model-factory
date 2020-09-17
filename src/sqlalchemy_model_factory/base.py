@@ -125,11 +125,11 @@ class Namespace:
         """
         namespaces = []
         methods = []
-        for name, attr in self.__dict__.items():
-            if isinstance(attr, self.__class__):
+        for name, item in self.__dict__.items():
+            if isinstance(item, self.__class__):
                 namespaces.append(name)
             else:
-                methods.append(methods)
+                methods.append(name)
 
         method_names = "N/A"
         if methods:
@@ -140,5 +140,5 @@ class Namespace:
             namespace_names = ", ".join(namespaces)
 
         raise AttributeError(
-            f"'{self.__class__}' object has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
+            f"{self.__class__.__name__} has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
         )
