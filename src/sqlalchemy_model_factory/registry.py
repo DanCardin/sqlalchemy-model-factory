@@ -11,7 +11,7 @@ class Registry:
     def clear(self):
         self._registered_methods = {}
 
-    def register_at(self, *namespace_path, name="new"):
+    def register_at(self, *namespace_path, name="new", **call_options):
         def wrapper(fn):
             registry_namespace = self._registered_methods.setdefault(namespace_path, {})
             if name in registry_namespace:
@@ -21,10 +21,16 @@ class Registry:
                     )
                 )
 
-            registry_namespace[name] = fn
+            registry_namespace[name] = Method(fn, call_options)
             return fn
 
         return wrapper
+
+
+class Method:
+    def __init__(self, fn, call_options):
+        self.fn = fn
+        self.call_options = call_options
 
 
 registry = Registry()
