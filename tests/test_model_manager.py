@@ -221,16 +221,20 @@ class TestNamespaceNesting:
             assert "Available methods include:" in str(e.value)
             assert "Available nested namespaces include:" in str(e.value)
 
-    def test_merge(self):
-        session = get_session(Base)
 
+def test_merge():
+    session = get_session(Base)
+
+    @registry.register_at("bar", merge=True)
+    def new_bar():
+        return Bar(id=1)
+
+    with ModelFactory(registry, session) as mm:
         session.add(Bar(id=1))
         session.commit()
 
-        @registry.register_at("bar", merge=True)
-        def new_bar():
-            return Bar(id=1)
+        bar = mm.bar.new()
 
-        with ModelFactory(registry, session) as mm:
-            bar = mm.bar.new()
+        session.add(Bar2(bar=bar))
+        session.commit()
         assert bar.id == 1
