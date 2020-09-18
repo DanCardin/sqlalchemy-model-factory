@@ -106,7 +106,7 @@ class AccessGuard:
         current_call_options = {"commit": commit_, "merge": merge_}
         call_options = compose_options(self.__method.call_options, current_call_options)
 
-        self.__manager.add_result(result, **call_options)
+        result = self.__manager.add_result(result, **call_options)
         return result
 
 
