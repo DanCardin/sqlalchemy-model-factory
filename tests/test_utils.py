@@ -1,5 +1,4 @@
 import pytest
-
 from sqlalchemy_model_factory.utils import fluent
 
 

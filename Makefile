@@ -18,13 +18,13 @@ test:
 
 lint:
 	flake8 src tests
-	isort --check-only --recursive src tests
+	isort --check-only src tests
 	pydocstyle src tests
 	mypy src tests
 	black --check src tests
 
 format:
-	isort --recursive --quiet src tests
+	isort --quiet src tests
 	black src tests
 
 publish: build

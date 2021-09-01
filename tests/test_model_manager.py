@@ -2,7 +2,6 @@ import pytest
 from sqlalchemy import Column, ForeignKey, types
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
 from sqlalchemy_model_factory.base import ModelFactory
 from sqlalchemy_model_factory.registry import registry
 from sqlalchemy_model_factory.utils import for_model
@@ -25,7 +24,9 @@ class Bar(Base):
 
     id = Column(types.Integer(), autoincrement=True, primary_key=True)
 
-    bar2s = relationship("Bar2", cascade="all, delete-orphan", passive_deletes=True)
+    bar2s = relationship(
+        "Bar2", cascade="all, delete-orphan", passive_deletes=True, back_populates="bar"
+    )
 
 
 class Bar2(Base):
@@ -36,7 +37,7 @@ class Bar2(Base):
         types.Integer(), ForeignKey("bar.id", ondelete="CASCADE"), nullable=False
     )
 
-    bar = relationship("Bar")
+    bar = relationship("Bar", back_populates="bar2s")
 
 
 class Baz(Base):
