@@ -1,6 +1,20 @@
 API
 ===
 
+.. _model_factory:
+.. automodule:: sqlalchemy_model_factory
+    :members: ModelFactory
+
+
+Declarative
+-----------
+
+.. automodule:: sqlalchemy_model_factory.declarative
+    :members: declarative
+
+.. automodule:: sqlalchemy_model_factory.declarative
+    :members: DeclarativeMF
+
 
 Factory Utilities
 -----------------
