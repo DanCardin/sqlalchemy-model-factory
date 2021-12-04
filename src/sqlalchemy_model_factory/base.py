@@ -1,4 +1,7 @@
 from collections.abc import Iterable
+from typing import Any, Dict, Set
+
+from sqlalchemy_model_factory.registry import Registry
 
 
 class Options:
@@ -8,15 +11,15 @@ class Options:
 
 
 class ModelFactory:
-    def __init__(self, registry, session, options=None):
+    def __init__(self, registry: Registry, session, options=None):
         self.registry = registry
-        self.new_models = set()
+        self.new_models: Set = set()
         self.session = session
 
         self.options = Options(**options or {})
 
     def __enter__(self):
-        return namespace_from_registry(Namespace, self, self.registry)
+        return Namespace.from_registry(self.registry, manager=self)
 
     def __exit__(self, *_):
         self.remove_managed_data()
@@ -85,18 +88,113 @@ class ModelFactory:
         return result
 
 
-class AccessGuard:
-    """A descriptor that controls access to managed functions and their return values.
+class Namespace:
+    """Represent a collection of registered namespaces or callable `Method`s.
+
+    A `Namespace` is a recursive structure used to form the path traversal
+    from the root namespace to any registered function.
+
+    A method can be registered at any level, including previously registered path
+    names, so long as that exact path + leaf is not yet registered.
+
+    Examples:
+        >>> from sqlalchemy_model_factory.registry import Method
+
+        >>> method1 = Method(lambda: 1)
+        >>> method2 = Method(lambda: 2)
+        >>> namespace = Namespace(method1, foo=Namespace(method2))
+
+        >>> namespace()
+        1
+
+        >>> namespace.foo()
+        2
     """
 
-    def __init__(self, manager, method):
-        self.__manager = manager
-        self.__method = method
+    @classmethod
+    def from_registry(cls, registry: Registry, manager=None):
+        """Produce a `Namespace` tree structure from a flat `Registry` structure.
+
+        Examples:
+            >>> registry = Registry()
+            >>> @registry.register_at("foo", name='bar')
+            ... def foo_bar():
+            ...     return 5
+
+            >>> @registry.register_at(name='foo')
+            ... def foo_bar():
+            ...     return 6
+
+            >>> namespace = Namespace.from_registry(registry)
+            >>> namespace.foo()
+            6
+            >>> namespace.foo.bar()
+            5
+        """
+        tree: Dict[str, Any] = {}
+
+        for namespace in registry.namespaces():
+            context = tree
+            for path_item in namespace:
+                context = context.setdefault(path_item, {})
+
+            methods = registry.methods(*namespace)
+            for name, method in methods.items():
+                context.setdefault(name, {})["__call__"] = method
+
+        return cls.from_tree(tree, manager=manager)
+
+    @classmethod
+    def from_tree(cls, tree, manager=None):
+        attrs = {}
+        for key, raw_value in tree.items():
+            if key == "__call__":
+                value = raw_value
+            else:
+                value = cls.from_tree(raw_value, manager=manager)
+            attrs[key] = value
+
+        return cls(_manager=manager, **attrs)
+
+    def __init__(self, __call__=None, *, _manager=None, **attrs):
+        self.__manager = _manager
+        self.__method = __call__
+
+        for attr, value in attrs.items():
+            setattr(self, attr, value)
 
     def __getattr__(self, attr):
-        return getattr(self.__method.fn, attr)
+        """Catch unset attribute names to provide a better error message."""
+        namespaces = []
+        methods = []
+        for name, item in self.__dict__.items():
+            if name.startswith(f"_{self.__class__.__name__}"):
+                continue
+
+            if isinstance(item, self.__class__):
+                namespaces.append(name)
+            else:
+                methods.append(name)
+
+        method_names = "N/A"
+        if methods:
+            method_names = ", ".join(methods)
+
+        namespace_names = "N/A"
+        if namespaces:
+            namespace_names = ", ".join(namespaces)
+
+        raise AttributeError(
+            f"{self.__class__.__name__} has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
+        )
 
     def __call__(self, *args, commit_=None, merge_=None, **kwargs):
+        """Provide an access guarding mechanism around callables.
+
+        Allows for a hook into, for example, the calling of namespace functions
+        for the purposes of keeping track of the results of the function calls,
+        or otherwise manipulating the input arguments.
+        """
         callable = self.__method.fn
         if hasattr(callable, "for_model"):
             callable = callable.for_model
@@ -106,27 +204,28 @@ class AccessGuard:
         current_call_options = {"commit": commit_, "merge": merge_}
         call_options = compose_options(self.__method.call_options, current_call_options)
 
-        result = self.__manager.add_result(result, **call_options)
+        if self.__manager:
+            result = self.__manager.add_result(result, **call_options)
         return result
 
+    def __repr__(self):
+        cls_name = self.__class__.__name__
 
-def namespace_from_registry(cls, manager, registry, instance=None):
-    if not instance:
-        instance = cls(manager)
+        attrs = []
+        for key, value in self.__dict__.items():
+            if key.endswith("__manager"):
+                continue
 
-    for namespace in registry.namespaces():
-        methods = registry.methods(*namespace)
+            if key == f"_{cls_name}__method":
+                if value is None:
+                    continue
 
-        context = instance
-        for path_item in namespace:
-            if not hasattr(context, path_item):
-                setattr(context, path_item, cls(manager))
-            context = getattr(context, path_item)
+                attrs.append(f"__call__={value}")
+            else:
+                attrs.append(f"{key}={repr(value)}")
 
-        for name, method in methods.items():
-            setattr(context, name, AccessGuard(manager, method))
-
-    return instance
+        attrs_str = ", ".join(attrs)
+        return f"{cls_name}({attrs_str})"
 
 
 def compose_options(*optionsets):
@@ -149,32 +248,3 @@ def compose_options(*optionsets):
 
             result[key] = value
     return result
-
-
-class Namespace:
-    def __init__(self, manager, **attrs):
-        for attr, method in attrs.items():
-            setattr(self, attr, AccessGuard(manager, method))
-
-    def __getattr__(self, attr):
-        """Catch unset attribute names to provide a better error message.
-        """
-        namespaces = []
-        methods = []
-        for name, item in self.__dict__.items():
-            if isinstance(item, self.__class__):
-                namespaces.append(name)
-            else:
-                methods.append(name)
-
-        method_names = "N/A"
-        if methods:
-            method_names = ", ".join(methods)
-
-        namespace_names = "N/A"
-        if namespaces:
-            namespace_names = ", ".join(namespaces)
-
-        raise AttributeError(
-            f"{self.__class__.__name__} has no attribute '{attr}'. Available methods include: {method_names}. Available nested namespaces include: {namespace_names}."
-        )

@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy import Column, types
 from sqlalchemy.ext.declarative import declarative_base
-
 from sqlalchemy_model_factory.registry import Registry
 from tests import get_session
 

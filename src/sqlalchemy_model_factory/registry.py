@@ -28,9 +28,15 @@ class Registry:
 
 
 class Method:
-    def __init__(self, fn, call_options):
+    def __init__(self, fn, call_options=None):
         self.fn = fn
-        self.call_options = call_options
+        self.call_options = call_options or {}
+
+    def __repr__(self):
+        result = f"{self.fn}"
+        if self.call_options:
+            result += f"[{self.call_options}]"
+        return f"Method({result})"
 
 
 registry = Registry()

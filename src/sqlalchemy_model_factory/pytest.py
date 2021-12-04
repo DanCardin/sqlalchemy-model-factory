@@ -6,7 +6,6 @@ give them access to any factory functions on which they've called `register_at`.
 """
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
-
 from sqlalchemy_model_factory.base import ModelFactory
 from sqlalchemy_model_factory.registry import registry
 
@@ -26,36 +25,31 @@ except ImportError:
 
 @pytest.fixture
 def mf_registry():
-    """Define a default fixture for the general case where the default registry is used.
-    """
+    """Define a default fixture for the general case where the default registry is used."""
     return registry
 
 
 @pytest.fixture
 def mf_engine():
-    """Define a default fixture in for the database engine.
-    """
+    """Define a default fixture in for the database engine."""
     return create_engine("sqlite:///")
 
 
 @pytest.fixture
 def mf_session(mf_engine):
-    """Define a default fixture in for the session, in case the user defines only `mf_engine`.
-    """
+    """Define a default fixture in for the session, in case the user defines only `mf_engine`."""
     Session = sessionmaker(mf_engine)
     return Session()
 
 
 @pytest.fixture
 def mf_config():
-    """Define a default fixture in for the model factory configuration.
-    """
+    """Define a default fixture in for the model factory configuration."""
     return {}
 
 
 @pytest.fixture
 def mf(mf_registry, mf_session, mf_config):
-    """Define a fixture for use of the ModelFactory in tests.
-    """
+    """Define a fixture for use of the ModelFactory in tests."""
     with ModelFactory(mf_registry, mf_session, options=mf_config) as model_manager:
         yield model_manager
