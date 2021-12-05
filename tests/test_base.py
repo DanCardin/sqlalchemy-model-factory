@@ -33,25 +33,26 @@ class TestNamespace:
 
 
 class TestModelFactory:
+    Base = declarative_base()
+
+    class Foo(Base):
+        __tablename__ = "foo"
+
+        id = Column(types.Integer(), autoincrement=True, primary_key=True)
+
     def test_it_allows_method_and_namespace_to_share_a_name(self):
-        Base = declarative_base()
 
-        class Foo(Base):
-            __tablename__ = "foo"
-
-            id = Column(types.Integer(), autoincrement=True, primary_key=True)
-
-        session = get_session(Base)
+        session = get_session(self.Base)
 
         registry = Registry()
 
         @registry.register_at("foo", "bar", name="baz")
         def baz():
-            return Foo(id=4)
+            return self.Foo(id=4)
 
         @registry.register_at("foo", name="bar")
         def bar():
-            return Foo(id=10)
+            return self.Foo(id=10)
 
         with ModelFactory(registry, session) as mf:
             bar_result = mf.foo.bar()
@@ -60,5 +61,5 @@ class TestModelFactory:
             baz_result = mf.foo.bar.baz()
             assert baz_result.id == 4
 
-            foos = session.query(Foo).all()
+            foos = session.query(self.Foo).all()
             assert len(foos) == 2

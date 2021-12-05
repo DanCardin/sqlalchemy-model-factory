@@ -7,7 +7,7 @@ give them access to any factory functions on which they've called `register_at`.
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy_model_factory.base import ModelFactory
-from sqlalchemy_model_factory.registry import registry
+from sqlalchemy_model_factory.registry import registry, Registry
 
 try:
     import pytest
@@ -21,6 +21,18 @@ except ImportError:
 
         def fixture(fn):
             return fn
+
+
+def create_registry_fixture(factory_or_registry):
+    if isinstance(factory_or_registry, Registry):
+        registry = factory_or_registry
+    else:
+        registry = factory_or_registry.registry
+
+    def fixture():
+        return registry
+
+    return pytest.fixture(fixture)
 
 
 @pytest.fixture
