@@ -64,3 +64,66 @@ ou have one pre-constructed.
    instantiated. This is notable, primarily in the event that an `__init__`
    is defined on the class for whatever reason. Each class will be instantiated
    once without arguments.
+
+
+Conversion from ``@register_at``
+--------------------------------
+If you have an existing body of model-factory functions registered using the
+``@register_at`` pattern, you can incrementally adopt (and therefore incrementally
+get viable type hinting support) the declarative api.
+
+
+If you are importing ``from sqlalchemy_model_factory import register_at``, today,
+you can import ``from sqlalchemy_model_factory import registry``, and send that
+into the ``@declarative`` decorator:
+
+.. code-block:: python
+
+   from sqlalchemy_model_factory import registry
+
+   @declarative(registry=registry)
+   class ModelFactory:
+       def example():
+           ...
+
+Alternatively, you can switch to manually constructing your own ``Registry``,
+though you will need to change your ``@register_at`` calls to use it!
+
+.. code-block:: python
+
+   from sqlalchemy_model_factory import Registry, declarative
+
+   registry = Registry()
+
+   @register_at("path", name="new")
+   def new_path():
+       ...
+
+   @declarative(registry=registry)
+   class Base:
+       def example():
+           ...
+
+Then once you make use of the annotation, say in some test:
+
+.. code-block:: python
+
+   def test_path(mf: Base):
+       mf.example()
+
+you should get go-to-definition and hinting support for the declaratively specified
+methods **only**.
+
+.. note::
+
+   You might see mypy type errors like ``Type[...] has no attribute "..."``
+   for ``@register_at``. You can either ignore these, or else apply the
+   ``compat`` as a superclass to your declarative:
+
+   .. code-block:: python
+
+      from sqlalchemy_model_factory import declarative
+
+      @declarative.declarative
+      class Factory(declarative.compat):
+          ...

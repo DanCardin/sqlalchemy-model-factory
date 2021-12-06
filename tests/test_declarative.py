@@ -1,7 +1,9 @@
-from sqlalchemy import Column, types
+import pytest
+from sqlalchemy import Column, create_engine, types
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy_model_factory import base
-from sqlalchemy_model_factory.declarative import declarative, DeclarativeMF
+from sqlalchemy_model_factory.declarative import compat, declarative, DeclarativeMF
 from sqlalchemy_model_factory.pytest import create_registry_fixture
 from sqlalchemy_model_factory.registry import Registry
 from tests import get_session
@@ -130,3 +132,47 @@ def test_callable_namespace():
 
         foos = session.query(Foo.id).all()
         assert foos == [(-5,), (5,)]
+
+
+# Mixed-dynamic and declarative setup.
+mixed_registry = Registry()
+
+
+@mixed_registry.register_at("ex", name="new")
+def new():
+    return Foo(id=6)
+
+
+@declarative(registry=mixed_registry)
+class MixedModelFactory(compat):
+    class ex(compat):
+        @staticmethod
+        def default(id: int):
+            return Foo(id=id)
+
+
+@pytest.fixture
+def mixed_mf_session(mf_engine):
+    mf_engine = create_engine("sqlite:///")
+    Base.metadata.create_all(mf_engine)
+    Session = sessionmaker(mf_engine)
+    return Session()
+
+
+@pytest.fixture
+def mixed_mf(mixed_mf_session):
+    with base.ModelFactory(mixed_registry, mixed_mf_session) as model_manager:
+        yield model_manager
+
+
+def test_mixed_dynamic_and_declarative(mixed_mf: MixedModelFactory, mixed_mf_session):
+    session = mixed_mf_session
+
+    mixed_mf.ex.new()
+    foos = session.query(Foo.id).all()
+    assert foos == [(6,)]
+
+    mixed_mf.ex.default(5)
+
+    foos = session.query(Foo.id).all()
+    assert foos == [(5,), (6,)]

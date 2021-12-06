@@ -10,10 +10,7 @@ Declarative
 -----------
 
 .. automodule:: sqlalchemy_model_factory.declarative
-    :members: declarative
-
-.. automodule:: sqlalchemy_model_factory.declarative
-    :members: DeclarativeMF
+    :members: declarative, DeclarativeMF
 
 
 Factory Utilities
