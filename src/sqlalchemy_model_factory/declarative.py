@@ -91,6 +91,26 @@ def declarative(_cls=None, *, registry=None):
     return _root_declarative
 
 
+class compat_meta(type):
+    def __getattr__(self, attr):
+        return super().__getattr__(attr)
+
+
+class compat(metaclass=compat_meta):
+    """Compatibility base class for factory classes.
+
+    Essentially what we're doing here is providing a base-class which
+    will disable mypy checks for attributes which might not exist like
+    'Type[factory] has no attribute "foo"'. By defining a getattr, we opt
+    that class out of such checks (because it cannot be statically defined),
+    without modifying the class's behavior.
+
+    This requires a metaclass because nested class definitions mean the type
+    of your sub-class attribute is actually the type itself rather than an
+    instance.
+    """
+
+
 class DeclarativeMF:
     """Provide an alternative to the class decorator for declarative base factories.
 
