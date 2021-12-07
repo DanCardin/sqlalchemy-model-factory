@@ -2,4 +2,5 @@ m2r2
 sphinx
 sphinx_rtd_theme
 sphinx_autodoc_typehints
+mistune<2.0.0
 .
