@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/dancardin/sqlalchemy-model-factory/workflows/build/badge.svg)](https://github.com/dancardin/sqlalchemy-model-factory/actions) [![codecov](https://codecov.io/gh/DanCardin/sqlalchemy-model-factory/branch/master/graph/badge.svg)](https://codecov.io/gh/DanCardin/sqlalchemy-model-factory) [![Documentation Status](https://readthedocs.org/projects/sqlalchemy-model-factory/badge/?version=latest)](https://sqlalchemy-model-factory.readthedocs.io/en/latest/?badge=latest)
+[![Actions Status](https://github.com/dancardin/sqlalchemy-model-factory/workflows/build/badge.svg)](https://github.com/dancardin/sqlalchemy-model-factory/actions) [![codecov](https://codecov.io/gh/DanCardin/sqlalchemy-model-factory/branch/main/graph/badge.svg)](https://codecov.io/gh/DanCardin/sqlalchemy-model-factory) [![Documentation Status](https://readthedocs.org/projects/sqlalchemy-model-factory/badge/?version=latest)](https://sqlalchemy-model-factory.readthedocs.io/en/latest/?badge=latest)
 
 sqlalchemy-model-factory aims to make it easy to write factory functions for sqlalchemy
 models, particularly for use in testing.
@@ -7,15 +7,13 @@ It should make it easy to define as many factories as you might want, with as li
 boilerplate as possible, while remaining as unopinionated as possible about the behavior
 going in your factories.
 
-Installation
-------------
+## Installation
 
 ```python
 pip install sqlalchemy-model-factory
 ```
 
-Usage
------
+## Usage
 
 Suppose you've defined a `Widget` model, and for example you want to test some API code
 that queries for `Widget` instances. Couple of factory functions might look like so:
@@ -69,11 +67,13 @@ def test_example_model(mf, session):
 
 In a simple toy example, where you don't gain much on the calls themselves the benefits
 are primarily:
-* The instances are automatically put into the database and cleaned up after the test.
-* You can make assertions without hardcoding the values, because you get back a handle on the object.
+
+- The instances are automatically put into the database and cleaned up after the test.
+- You can make assertions without hardcoding the values, because you get back a handle on the object.
 
 But as the graph of models required to set up a particular scenario grows:
-* You can define factories as complex as you want
-  * They can create related objects and assign them to relationships
-  * They can be given sources of randomness or uniqueness to not violate constraints
-  * They can compose with eachother (when called normally, they're the same as the original function).
+
+- You can define factories as complex as you want
+  - They can create related objects and assign them to relationships
+  - They can be given sources of randomness or uniqueness to not violate constraints
+  - They can compose with eachother (when called normally, they're the same as the original function).

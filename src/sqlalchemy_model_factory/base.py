@@ -1,7 +1,7 @@
 from collections.abc import Iterable
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
-from sqlalchemy_model_factory.registry import Registry
+from sqlalchemy_model_factory.registry import Method, Registry
 
 
 class Options:
@@ -156,7 +156,7 @@ class Namespace:
 
         return cls(_manager=manager, **attrs)
 
-    def __init__(self, __call__=None, *, _manager=None, **attrs):
+    def __init__(self, __call__: Optional[Method] = None, *, _manager=None, **attrs):
         self.__manager = _manager
         self.__method = __call__
 
@@ -195,17 +195,33 @@ class Namespace:
         for the purposes of keeping track of the results of the function calls,
         or otherwise manipulating the input arguments.
         """
+        if self.__method is None:
+            raise RuntimeError(
+                f"{self} has no registered factory function and cannot be called."
+            )
+
         callable = self.__method.fn
         if hasattr(callable, "for_model"):
             callable = callable.for_model
 
         result = callable(*args, **kwargs)
 
-        current_call_options = {"commit": commit_, "merge": merge_}
-        call_options = compose_options(self.__method.call_options, current_call_options)
-
         if self.__manager:
-            result = self.__manager.add_result(result, **call_options)
+            commit = (
+                commit_
+                if commit_ is not None
+                else self.__method.commit
+                if self.__method.commit is not None
+                else True
+            )
+            merge = (
+                merge_
+                if merge_ is not None
+                else self.__method.merge
+                if self.__method.merge is not None
+                else False
+            )
+            result = self.__manager.add_result(result, commit=commit, merge=merge)
         return result
 
     def __repr__(self):
@@ -226,25 +242,3 @@ class Namespace:
 
         attrs_str = ", ".join(attrs)
         return f"{cls_name}({attrs_str})"
-
-
-def compose_options(*optionsets):
-    """Compose a `dict` of options on top of eachother among a series of optionsets.
-
-    Ignores missing or empty keys in each optionset.
-
-    >>> compose_options({'foo': 1}, {'bar': 2})
-    {'foo': 1, 'bar': 2}
-    >>> compose_options({'foo': 10}, {'foo': 1})
-    {'foo': 1}
-    >>> compose_options({'foo': 10}, {'foo': None})
-    {'foo': 10}
-    """
-    result = {}
-    for optionset in optionsets:
-        for key, value in optionset.items():
-            if value is None:
-                continue
-
-            result[key] = value
-    return result

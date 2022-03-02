@@ -3,7 +3,12 @@ from sqlalchemy import Column, create_engine, types
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy_model_factory import base
-from sqlalchemy_model_factory.declarative import compat, declarative, DeclarativeMF
+from sqlalchemy_model_factory.declarative import (
+    compat,
+    declarative,
+    DeclarativeMF,
+    factory,
+)
 from sqlalchemy_model_factory.pytest import create_registry_fixture
 from sqlalchemy_model_factory.registry import Registry
 from tests import get_session
@@ -176,3 +181,39 @@ def test_mixed_dynamic_and_declarative(mixed_mf: MixedModelFactory, mixed_mf_ses
 
     foos = session.query(Foo.id).all()
     assert foos == [(5,), (6,)]
+
+
+factory_fn_registry = Registry()
+
+
+@declarative(registry=factory_fn_registry)
+class FactoryFnMF:
+    @staticmethod
+    @factory(merge=True)
+    def default(*, id: int) -> Foo:
+        return Foo(id=id)
+
+    class foo:
+        @staticmethod
+        @factory()
+        def bar(*, pk: int) -> Bar:
+            return Bar(pk=pk)
+
+
+@pytest.fixture
+def factory_mf(mixed_mf_session):
+    with base.ModelFactory(factory_fn_registry, mixed_mf_session) as model_manager:
+        yield model_manager
+
+
+def test_Factory(factory_mf: FactoryFnMF, mixed_mf_session):
+    foo = factory_mf.default(id=5)
+    bar = factory_mf.foo.bar(pk=6)
+
+    the_foo = mixed_mf_session.query(Foo).one()
+    assert foo.id == 5
+    assert foo is the_foo
+
+    the_bar = mixed_mf_session.query(Bar).one()
+    assert bar.pk == 6
+    assert bar is the_bar
