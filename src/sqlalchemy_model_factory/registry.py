@@ -1,3 +1,8 @@
+from typing import Callable, Generic, Optional, TypeVar
+
+from typing_extensions import ParamSpec
+
+
 class Registry:
     def __init__(self):
         self._registered_methods = {}
@@ -11,7 +16,13 @@ class Registry:
     def clear(self):
         self._registered_methods = {}
 
-    def register_at(self, *namespace_path, name="new", **call_options):
+    def register_at(
+        self,
+        *namespace_path,
+        name="new",
+        merge: Optional[bool] = None,
+        commit: Optional[bool] = None,
+    ):
         def wrapper(fn):
             registry_namespace = self._registered_methods.setdefault(namespace_path, {})
             if name in registry_namespace:
@@ -21,22 +32,44 @@ class Registry:
                     )
                 )
 
-            registry_namespace[name] = Method(fn, call_options)
+            if isinstance(fn, Method):
+                method = fn
+            else:
+                method = Method(fn, merge=merge, commit=commit)
+
+            registry_namespace[name] = method
             return fn
 
         return wrapper
 
 
-class Method:
-    def __init__(self, fn, call_options=None):
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+class Method(Generic[P, R]):
+    def __init__(
+        self,
+        fn: Callable[P, R],
+        commit: Optional[bool] = None,
+        merge: Optional[bool] = None,
+    ):
         self.fn = fn
-        self.call_options = call_options or {}
+        self.commit = commit
+        self.merge = merge
 
     def __repr__(self):
-        result = f"{self.fn}"
-        if self.call_options:
-            result += f"[{self.call_options}]"
-        return f"Method({result})"
+        result = f"{self.__class__.__name__}({self.fn}"
+        if self.commit is not None:
+            result += f", commit={self.commit}"
+
+        if self.merge is not None:
+            result += f", merge={self.merge}"
+        result += ")"
+        return result
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        return self.fn(*args, **kwargs)
 
 
 registry = Registry()

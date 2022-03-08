@@ -63,3 +63,16 @@ class TestModelFactory:
 
             foos = session.query(self.Foo).all()
             assert len(foos) == 2
+
+    def test_cannot_call_namespace_with_no_method(self):
+        session = get_session(self.Base)
+
+        registry = Registry()
+
+        @registry.register_at("foo", "bar", name="baz")
+        def baz():
+            return self.Foo(id=4)
+
+        with ModelFactory(registry, session) as mf:
+            with pytest.raises(RuntimeError):
+                mf.foo()

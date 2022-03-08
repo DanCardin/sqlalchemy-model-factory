@@ -1,4 +1,6 @@
-from sqlalchemy_model_factory.registry import Registry
+from typing import Callable
+
+from sqlalchemy_model_factory.registry import Method, P, R, Registry
 
 
 def declarative(_cls=None, *, registry=None):
@@ -76,6 +78,7 @@ def declarative(_cls=None, *, registry=None):
             attr = getattr(cls, name)
 
             # Callables can now be registered to the function registry.
+            # Callables can now be registered to the function registry.
             if name == "__call__":
                 *rcontext, rname = context
                 registration = registry.register_at(*rcontext, name=rname)
@@ -89,6 +92,22 @@ def declarative(_cls=None, *, registry=None):
     if _cls is not None:
         return _root_declarative(_cls)
     return _root_declarative
+
+
+def factory(merge=None, commit=None) -> Callable[[Callable[P, R]], Method[P, R]]:
+    """Annotate declaratively specified factory functions.
+
+    This is an optional addition in the common case. Normally, factory functions
+    will be automatically wrapped in `Method` in order to get the same behavior.
+
+    However, if you need to customize the model-factory behavior in order to supply
+    merge/commit/etc kwargs that would normally be supplied with `register_at`.
+    """
+
+    def decorator(fn: Callable[P, R]) -> Method[P, R]:
+        return Method(fn, merge=merge, commit=commit)  # type: ignore
+
+    return decorator  # type: ignore
 
 
 class compat_meta(type):
