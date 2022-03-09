@@ -208,6 +208,10 @@ def factory_mf(mixed_mf_session):
 
 def test_Factory(factory_mf: FactoryFnMF, mixed_mf_session):
     foo = factory_mf.default(id=5)
+
+    # Make a 2nd one, it should merge instead of erroring.
+    foo = factory_mf.default(id=5)
+
     bar = factory_mf.foo.bar(pk=6)
 
     the_foo = mixed_mf_session.query(Foo).one()
