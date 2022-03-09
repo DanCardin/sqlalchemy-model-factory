@@ -31,6 +31,16 @@ class TestNamespace:
         result = repr(n)
         assert result == "Namespace(foo=None, bar=Method(4), baz=Namespace(__call__=4))"
 
+    def test_repr_merge_commit(self):
+        n = Namespace(
+            None, foo=None, bar=Method(4, merge=True, commit=True), baz=Namespace(4)
+        )
+        result = repr(n)
+        assert (
+            result
+            == "Namespace(foo=None, bar=Method(4, commit=True, merge=True), baz=Namespace(__call__=4))"
+        )
+
 
 class TestModelFactory:
     Base = declarative_base()

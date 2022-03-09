@@ -1,7 +1,5 @@
 from typing import Callable, Generic, Optional, TypeVar
 
-from typing_extensions import ParamSpec
-
 
 class Registry:
     def __init__(self):
@@ -32,9 +30,8 @@ class Registry:
                     )
                 )
 
-            if isinstance(fn, Method):
-                method = fn
-            else:
+            method = fn
+            if not isinstance(fn, Method):
                 method = Method(fn, merge=merge, commit=commit)
 
             registry_namespace[name] = method
@@ -43,14 +40,13 @@ class Registry:
         return wrapper
 
 
-P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class Method(Generic[P, R]):
+class Method(Generic[R]):
     def __init__(
         self,
-        fn: Callable[P, R],
+        fn: Callable[..., R],
         commit: Optional[bool] = None,
         merge: Optional[bool] = None,
     ):
@@ -68,7 +64,7 @@ class Method(Generic[P, R]):
         result += ")"
         return result
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+    def __call__(self, *args, **kwargs) -> R:
         return self.fn(*args, **kwargs)
 
 

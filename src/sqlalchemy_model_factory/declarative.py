@@ -1,6 +1,6 @@
 from typing import Callable
 
-from sqlalchemy_model_factory.registry import Method, P, R, Registry
+from sqlalchemy_model_factory.registry import Method, R, Registry
 
 
 def declarative(_cls=None, *, registry=None):
@@ -70,14 +70,19 @@ def declarative(_cls=None, *, registry=None):
             cls = cls()
 
         for name in dir(cls):
+            attr = getattr(cls, name)
+            is_method = isinstance(attr, Method)
+
             # Ignore private attributes. These classes are intended to be used as
             # an api, it makes no sense to collect "private" attributes!
-            if name != "__call__" and name.startswith("_"):
+            if name.startswith("_") and name != "__call__":
                 continue
 
-            attr = getattr(cls, name)
+            if is_method:
+                registration = registry.register_at(*context, name=name)
+                registration(attr)
+                continue
 
-            # Callables can now be registered to the function registry.
             # Callables can now be registered to the function registry.
             if name == "__call__":
                 *rcontext, rname = context
@@ -94,7 +99,7 @@ def declarative(_cls=None, *, registry=None):
     return _root_declarative
 
 
-def factory(merge=None, commit=None) -> Callable[[Callable[P, R]], Method[P, R]]:
+def factory(merge=None, commit=None) -> Callable[[Callable[..., R]], Method[R]]:
     """Annotate declaratively specified factory functions.
 
     This is an optional addition in the common case. Normally, factory functions
@@ -104,10 +109,10 @@ def factory(merge=None, commit=None) -> Callable[[Callable[P, R]], Method[P, R]]
     merge/commit/etc kwargs that would normally be supplied with `register_at`.
     """
 
-    def decorator(fn: Callable[P, R]) -> Method[P, R]:
-        return Method(fn, merge=merge, commit=commit)  # type: ignore
+    def decorator(fn: Callable[..., R]) -> Method[R]:
+        return Method(fn, merge=merge, commit=commit)
 
-    return decorator  # type: ignore
+    return decorator
 
 
 class compat_meta(type):
