@@ -51,7 +51,11 @@ def mf_engine():
 def mf_session(mf_engine):
     """Define a default fixture in for the session, in case the user defines only `mf_engine`."""
     Session = sessionmaker(mf_engine)
-    return Session()
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture
