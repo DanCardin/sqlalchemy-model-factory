@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sqlalchemy-model-factory"
-version = "0.4.3"
+version = "0.4.4"
 description = "A library to assist in generating models from a central location."
 authors = ["Dan Cardin <ddcardin@gmail.com>"]
 license = "Apache-2.0"
