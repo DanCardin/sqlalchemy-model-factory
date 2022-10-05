@@ -1,7 +1,8 @@
-from collections.abc import Iterable
 from typing import Any, Dict, Optional, Set
 
 from sqlalchemy_model_factory.registry import Method, Registry
+
+_ITERABLES = (list, tuple, set)
 
 
 class Options:
@@ -54,7 +55,7 @@ class ModelFactory:
             self.session.begin()
 
         if merge:
-            if isinstance(result, Iterable):
+            if isinstance(result, _ITERABLES):
                 items = []
                 for item in result:
                     items.append(self.session.merge(item))
@@ -62,7 +63,7 @@ class ModelFactory:
             else:
                 result = self.session.merge(result)
         else:
-            if isinstance(result, Iterable):
+            if isinstance(result, _ITERABLES):
                 for item in result:
                     self.session.add(item)
             else:
@@ -79,7 +80,7 @@ class ModelFactory:
             else:
                 self.session.flush()
 
-            if isinstance(result, Iterable):
+            if isinstance(result, _ITERABLES):
                 for item in result:
                     self.session.refresh(item)
             else:
