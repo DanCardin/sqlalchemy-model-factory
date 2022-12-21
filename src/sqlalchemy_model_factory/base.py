@@ -33,7 +33,7 @@ class ModelFactory:
         # Events inside the context manager could have left pending state.
         self.session.rollback()
 
-        if self.session.autocommit:
+        if getattr(self.session, "autocommit", None):
             self.session.begin()
 
         while self.session.identity_map:
@@ -51,7 +51,7 @@ class ModelFactory:
         self.session.rollback()
 
         # When the session is autocommit, it is expected that you start the transaction manually.
-        if self.session.autocommit:
+        if getattr(self.session, "autocommit", None):
             self.session.begin()
 
         if merge:
